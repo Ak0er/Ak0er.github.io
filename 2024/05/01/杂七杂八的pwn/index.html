@@ -1,0 +1,639 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Ak0er">
+  <meta name="keywords" content="zh-CN">
+  
+    <meta name="description" content="栈，即堆栈，是一种具有一定规则的数据结构，它按照先进后出的原则存储数据，先进入的数据被压入栈底，最后的数据在栈顶。也就是esp到ebp之间代码段：存放可执行程序的代码，可读不可写数据段：存放程序中已经初始化的静态（全局）变量，可读写bss段：存放程序中未初始化的静态（全局）变量，可读写堆（heap）：存放动态分配的内容，需要程序猿手动分配和释放栈（stack）：存放局部变量，如函数的参数、返回地址">
+<meta property="og:type" content="article">
+<meta property="og:title" content="杂七杂八的pwn">
+<meta property="og:url" content="http://ak0er.github.io/2024/05/01/%E6%9D%82%E4%B8%83%E6%9D%82%E5%85%AB%E7%9A%84pwn/index.html">
+<meta property="og:site_name" content="Ak0er">
+<meta property="og:description" content="栈，即堆栈，是一种具有一定规则的数据结构，它按照先进后出的原则存储数据，先进入的数据被压入栈底，最后的数据在栈顶。也就是esp到ebp之间代码段：存放可执行程序的代码，可读不可写数据段：存放程序中已经初始化的静态（全局）变量，可读写bss段：存放程序中未初始化的静态（全局）变量，可读写堆（heap）：存放动态分配的内容，需要程序猿手动分配和释放栈（stack）：存放局部变量，如函数的参数、返回地址">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-04-30T17:42:26.000Z">
+<meta property="article:modified_time" content="2024-05-04T11:04:04.152Z">
+<meta property="article:author" content="Ak0er">
+<meta property="article:tag" content="zh-CN">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>杂七杂八的pwn - Ak0er</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ak0er.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Fluid</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="杂七杂八的pwn"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-01 01:42" pubdate>
+          2024年5月1日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          16 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">杂七杂八的pwn</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>栈，即堆栈，是一种具有一定规则的数据结构，它按照先进后出的原则存储数据，先进入的数据被压入栈底，最后的数据在栈顶。<br>也就是esp到ebp之间<br>代码段：存放可执行程序的代码，可读不可写<br>数据段：存放程序中已经初始化的静态（全局）变量，可读写<br>bss段：存放程序中未初始化的静态（全局）变量，可读写<br>堆（heap）：存放动态分配的内容，需要程序猿手动分配和释放<br>栈（stack）：存放局部变量，如函数的参数、返回地址、局部变量等，有系统自动分配和释放</p>
+<p>要背记的指令<br>gedit 文件名.py<br>chomd 777 文件名<br>remote是远程，process是本地<br>recvline 或recvuntil #使程序停止到某一行<br>ROP的命令: ROPgadget –binary 文件名 –sting ‘要找的字符串’</p>
+<h3 id="Ropgatget命令"><a href="#Ropgatget命令" class="headerlink" title="Ropgatget命令"></a>Ropgatget命令</h3><p>命令: ROPgadget –binary 文件名 –only “pop|ret” | grep rdi<br>命令: ROPgadget –binary 文件名 –only “pop|ret” | grep rsi<br>命令: ROPgadget –binary 文件名  –only ‘pop|ret’ | grep ‘eax’   &#x2F;&#x2F;寻找控制 eax 的 gadgets<br>命令: ROPgadget –binary 文件名 –only “pop|ret”<br>命令: ROPgadget –binary 文件名  –only ‘int’   查找有int 0x80的地址<br>该工具除了可以用来查找 ret&#x2F;rdi的地址,还可以用来查找一些字符串的地址<br>命令: ROPgadget –binary 文件名 –string ‘&#x2F;bin&#x2F;sh’<br>命令: ROPgadget –binary 文件名 –string ‘&#x2F;sh’<br>命令: ROPgadget –binary 文件名 –string ‘sh’<br>命令: ROPgadget –binary 文件名 –string ‘cat flag’<br>命令: ROPgadget –binary 文件名 –string ‘cat flag.txt’<br>直接利用程序中的片段拼凑rop链 （必须是静态编译的情况）<br>命令：ROPgadget –binary 文件名 –ropchain</p>
+<p>寻找某一个文件的位置：find -name 文件名</p>
+<p>#asm()将接受到的字符串转变为汇编码的机器代码,而shellcraft可以生成asm下的shellcode，如：asm(shellcraft.sh())</p>
+<p>查看程序运行情况：context(arch &#x3D; ‘amd64’, os &#x3D; ‘linux’,log_level &#x3D; ‘debug’)（写在脚本中，等于是运用了工具）</p>
+<h3 id="关于格式化漏洞的知识点"><a href="#关于格式化漏洞的知识点" class="headerlink" title="关于格式化漏洞的知识点"></a>关于格式化漏洞的知识点</h3><p>​       好了，接下来说一下找到的偏移如何用，构造payload：p32(system_got)+b”%6$s”，此时system的got表地址会存在栈上，<br>也就是printf的第六个参数位置；而%6$s表示打印出第六个参数作为地址指向的内容，所以此时该payload就会打印出system的真实地址。<br>再构造payload：p32(system_got)+b”%6$n”，%6$n表示往第六个参数指向的内存中写4个字节宽的内容，而写的数值是print已经打印的<br>内容长度，printf此时打印的长度是p32(system_got)的长度，也就是4，所以此时该payload就会改写system真实地址为4。<br>  上面的讲解是以32位题目为例，在遇到64位时会有些不同，这里先总结一下。首先64位前6个参数是以寄存器传参，且字长为8，<br>所以此时寻找偏移的payload应该这样构造：aaaaaaaa-%p-%p-%p-%p-%p-%p。另外由于寄存器传参的原因，<br>从第6个格式化符号开始才会打印栈上的内容。最后一个重点是，由于字长为8，64的地址存在零，<br>所以想要利用偏移来泄露地址内容或者改写其内容的话，目的地址不能放在格式化符号之前，否则printf在遇到零字节时会被截断，<br>此时应将目的地址放在格式化符号后面。</p>
+<p>参数在栈上的地址&#x3D;ebp-偏移量</p>
+<p>本地的libc查找就是ldd +文件名</p>
+<h3 id="堆相关的知识："><a href="#堆相关的知识：" class="headerlink" title="堆相关的知识："></a>堆相关的知识：</h3><p>add，就是简单的创建一个chunk<br>在创建堆时有一个结构体，这个结构体大概是这样的：<br>struct pr_heap<br>{<br>double alloc_or_not;   #0或者1，表示是否分配（0表示没有分配，1表示分配）<br>double size;           #创建chunk的大小<br>void *heap;            #chunk的内存地址<br>};</p>
+<h3 id="寄存器用途约定"><a href="#寄存器用途约定" class="headerlink" title="寄存器用途约定"></a>寄存器用途约定</h3><p>（1）64位汇编传参，当参数少于7个时， 参数从左到右放入寄存器: rdi, rsi, rdx, rcx, r8, r9。 &gt; 当参数为7个以上时，<br>前 6 个与前面一样， 但后面的依次从 “右向左” 放入栈中，即和32位汇编一样。<br>（2）64位有16个寄存器，32位只有8个。但是32位前8个都有不同的命名，分别是e _ ，而64位前8个使用了r代替e，也就是r _。<br>e开头的寄存器命名依然可以直接运用于相应寄存器的低32位。而剩下的寄存器名则是从r8 - r15，其低位分别用d，w,b指定长度。<br>（3）32位使用栈帧来作为传递的参数的保存位置，而64位使用寄存器，分别用rdi,rsi,rdx,rcx,r8,r9作为第1-6个参数。rax作为返回值<br>（4）64位没有栈帧的指针，32位用ebp作为栈帧指针，64位取消了这个设定，rbp作为通用寄存器使用<br>（5）64位支持一些形式的以PC相关的寻址，而32位只有在jmp的时候才会用到这种寻址方式。</p>
+<p>用于存储传入参数：rdi，rsi，rdx，rcx，r8，r9 用作函数参数，依次对应第1参数，第2参数…<br>用于存放返回结果：%rax。<br>用于数据存储：rbx，rbp，r12，r13，14，15 用作数据存储，遵循被调用者使用规则，简单说就是随便用，调用子函数之前要备份它，以防他被修改<br>r10，r11 用作数据存储，遵循调用者使用规则，简单说就是使用之前要先保存原值</p>
+<h3 id="系统调用的知识"><a href="#系统调用的知识" class="headerlink" title="系统调用的知识"></a>系统调用的知识</h3><p>系统调用号，即 e&#x2F;rax 应该为 0xb<br>第一个参数，即 e&#x2F;rbx 应该指向 &#x2F;bin&#x2F;sh 的地址，其实执行 sh 的地址也可以。<br>第二个参数，即 e&#x2F;rcx 应该为 0<br>第三个参数，即 e&#x2F;rdx 应该为 0<br>调用系统函数时会通过内联汇编代码插入int 0x80的中断指令，(不仅会插入中断指令，还会将系统调用编号设置给 %eax 寄存器）<br>    #pop rbx,rbp,r12,r13,r14,r15<br>    #rbx should be 0,<br>    #rbp should be 1,enable not to jump<br>    #r12 should be the function we want to call<br>    #rdi&#x3D;edi&#x3D;r15d<br>    #rsi&#x3D;r14<br>    #rdx&#x3D;r13<br>中级rop利用了在 64 位程序中，函数的前 6 个参数是通过寄存器传递的，但是大多数时候，我们很难找到每一个寄存器对应的 gadgets。<br>这时候，我们可以利用 x64 下的 __libc_csu_init 中的 gadgets。</p>
+<h3 id="重指向："><a href="#重指向：" class="headerlink" title="重指向："></a>重指向：</h3><p>​    exec 1&gt;&amp;0（输出重指向），exec 0&lt;&amp;0（输入重指向）</p>
+<h3 id="代替libcseacher的网站："><a href="#代替libcseacher的网站：" class="headerlink" title="代替libcseacher的网站："></a>代替libcseacher的网站：</h3><p>​    libc.blukat.me</p>
+<h3 id="随机数的知识点："><a href="#随机数的知识点：" class="headerlink" title="随机数的知识点："></a>随机数的知识点：</h3><p>​     libc库一样，种子一样，生成的随机数一样</p>
+<h3 id="canary："><a href="#canary：" class="headerlink" title="canary："></a>canary：</h3><ul>
+<li>Canary值在rbp到rsp之间（并不一定是rbp-8的位置）</li>
+<li>Canary值以0x00结尾,如果程序没有漏洞但栈上面刚好是一个满的字符串,这个0x00可以当做截断,避免被打印出来</li>
+<li>Canary值如果被改写,程序会崩溃</li>
+<li>一般为4&#x2F;8位</li>
+</ul>
+<h3 id="ubuntu18后system要进行栈对齐"><a href="#ubuntu18后system要进行栈对齐" class="headerlink" title="ubuntu18后system要进行栈对齐"></a>ubuntu18后system要进行栈对齐</h3><p>需要加个ret平衡栈，用来进行栈对齐，栈平衡问题，ubuntu18之后system会出现这个问题，有题目可知，这道题就部署在ubuntu18上</p>
+<p>flag可以藏于环境变量中（env可以查看所有环境变量）</p>
+<h3 id="one-gadget的使用："><a href="#one-gadget的使用：" class="headerlink" title="one_gadget的使用："></a>one_gadget的使用：</h3><p>   one_gadget libc的版本</p>
+<h3 id="bytes-fromhex-："><a href="#bytes-fromhex-：" class="headerlink" title="bytes.fromhex ()："></a>bytes.fromhex ()：</h3><p>Python 中使用 bytes.fromhex () 把十六进制转换为字节的函数</p>
+<h3 id="函数fini-array"><a href="#函数fini-array" class="headerlink" title="函数fini_array:"></a>函数fini_array:</h3><p>程序执行返回后会执行fini_array中内容</p>
+<h3 id="patchelf的使用："><a href="#patchelf的使用：" class="headerlink" title="patchelf的使用："></a>patchelf的使用：</h3><p>patchelf –replace-needed libc.so.6 .&#x2F;libc.so.6 .&#x2F;pwn</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>杂七杂八的pwn</div>
+      <div>http://ak0er.github.io/2024/05/01/杂七杂八的pwn/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Ak0er</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月1日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/05/04/pwngdb%E7%9A%84%E4%BD%BF%E7%94%A8/" title="pwngdb的使用">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">pwngdb的使用</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

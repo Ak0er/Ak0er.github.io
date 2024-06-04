@@ -1,0 +1,775 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Ak0er">
+  <meta name="keywords" content="zh-CN">
+  
+    <meta name="description" content="基本指令 help   &#x2F;&#x2F;帮助  i      &#x2F;&#x2F;info，查看一些信息，只输入info可以看可以接什么参数，下面几个比较常用i b   &#x2F;&#x2F;常用，info break 查看所有断点信息（编号、断点位置）i r    &#x2F;&#x2F;常用，info registers 查看各个寄存器当前的值i f    &#x2F;&amp;#x2F">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pwngdb的使用">
+<meta property="og:url" content="http://ak0er.github.io/2024/05/04/pwngdb%E7%9A%84%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="Ak0er">
+<meta property="og:description" content="基本指令 help   &#x2F;&#x2F;帮助  i      &#x2F;&#x2F;info，查看一些信息，只输入info可以看可以接什么参数，下面几个比较常用i b   &#x2F;&#x2F;常用，info break 查看所有断点信息（编号、断点位置）i r    &#x2F;&#x2F;常用，info registers 查看各个寄存器当前的值i f    &#x2F;&amp;#x2F">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="c:\Users\%E5%88%98%E5%85%88%E7%94%9F\AppData\Roaming\Typora\typora-user-images\image-20230413204103398.png">
+<meta property="article:published_time" content="2024-05-03T18:53:04.000Z">
+<meta property="article:modified_time" content="2024-05-04T11:06:32.950Z">
+<meta property="article:author" content="Ak0er">
+<meta property="article:tag" content="zh-CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="c:\Users\%E5%88%98%E5%85%88%E7%94%9F\AppData\Roaming\Typora\typora-user-images\image-20230413204103398.png">
+  
+  
+  
+  <title>pwngdb的使用 - Ak0er</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ak0er.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Fluid</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="pwngdb的使用"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-04 02:53" pubdate>
+          2024年5月4日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          14 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">pwngdb的使用</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="基本指令"><a href="#基本指令" class="headerlink" title="基本指令"></a>基本指令</h2><ul>
+<li><p>help   &#x2F;&#x2F;帮助</p>
+</li>
+<li><p>i      &#x2F;&#x2F;info，查看一些信息，只输入info可以看可以接什么参数，下面几个比较常用<br>i b   &#x2F;<strong>&#x2F;常用</strong>，info break 查看所有断点信息（编号、断点位置）<br>i r    &#x2F;&#x2F;<strong>常用</strong>，info registers 查看各个寄存器当前的值<br>i f    &#x2F;&#x2F;info function 查看所有函数名，需保留符号</p>
+</li>
+<li><p>show  &#x2F;&#x2F;和info类似，但是查看调试器的基本信息，如：</p>
+<p>show args  &#x2F;&#x2F;查看参数</p>
+</li>
+<li><p>rdi  &#x2F;&#x2F;<strong>常用</strong>，+寄存器名代表一个寄存器内的值，<strong>用在地址上直接相当与一个十六进制变量</strong></p>
+</li>
+<li><p>backtrace &#x2F;&#x2F;查看调用栈</p>
+</li>
+<li><p>q &#x2F;&#x2F;quit 退出，<strong>常用</strong></p>
+</li>
+</ul>
+<h2 id="执行指令"><a href="#执行指令" class="headerlink" title="执行指令"></a>执行指令</h2><ul>
+<li>s &#x2F;&#x2F;单步步入，遇到调用跟进函数中，相当于step into，源码层面的一步</li>
+<li>si &#x2F;&#x2F;常用，同s，汇编层面的一步</li>
+<li>n &#x2F;&#x2F;单步补过，遇到电泳不跟进，相当于step over，源码层面的一步</li>
+<li>ni &#x2F;&#x2F;常用，同n，汇编层面的一步</li>
+<li>c &#x2F;&#x2F;continue，常用，继续执行到断点，没断点就一直执行下去</li>
+<li>r &#x2F;&#x2F;run，常用，重新开始执行</li>
+</ul>
+<h2 id="断点指令"><a href="#断点指令" class="headerlink" title="断点指令"></a>断点指令</h2><h5 id="下普通断点指令b-break-："><a href="#下普通断点指令b-break-：" class="headerlink" title="下普通断点指令b(break)："></a>下普通断点指令b(break)：</h5><ul>
+<li><p>b *(0x123456) &#x2F;&#x2F;常用，给0x123456地址处的指令下断点</p>
+<p>​     b *$rebase(0x123456) &#x2F;&#x2F;$rebase 在调试开PIE的程序的时候可以直接加上程序的随机地址</p>
+</li>
+<li><p>b fun_name &#x2F;&#x2F;常用，给函数fun_name下断点，目标文件要保留符号才行</p>
+<p>​     b file_name:fun_name</p>
+</li>
+<li><p>b file_name:15 &#x2F;&#x2F;给file_name的15行下断点，要有源码才行</p>
+<p>​     b 15</p>
+</li>
+<li><p>b +0x10 &#x2F;&#x2F;在程序当前停住的位置下0x10的位置下断点，同样可以-0x10，就是前0x10</p>
+</li>
+<li><p>break fun if $rdi&#x3D;&#x3D;5 &#x2F;&#x2F;条件断点，rdi值为5的时候才断</p>
+</li>
+</ul>
+<h5 id="删除、禁用断点："><a href="#删除、禁用断点：" class="headerlink" title="删除、禁用断点："></a>删除、禁用断点：</h5><ul>
+<li>使用info break(简写: i b)来查看断点编号</li>
+<li>delete 5 &#x2F;&#x2F;<strong>常用</strong>，删除5号断点，直接delete不接数字删除所有</li>
+<li>disable 5 &#x2F;&#x2F;常用，禁用5号断点<ul>
+<li>enable 5 &#x2F;&#x2F;启用5号断点</li>
+</ul>
+</li>
+<li>clear &#x2F;&#x2F;清除下面的所有断点</li>
+</ul>
+<h5 id="内存断点指令watch："><a href="#内存断点指令watch：" class="headerlink" title="内存断点指令watch："></a><strong>内存断点指令watch：</strong></h5><ul>
+<li>watch 0x123456   &#x2F;&#x2F;0x123456地址的数据改变的时候会断</li>
+<li>watch a   &#x2F;&#x2F;变量a改变的时候会断</li>
+<li>info watchpoints   &#x2F;&#x2F;查看watch断点信息</li>
+</ul>
+<h5 id="捕获断点catch："><a href="#捕获断点catch：" class="headerlink" title="捕获断点catch："></a><strong>捕获断点catch：</strong></h5><ul>
+<li><p>catch syscall &#x2F;&#x2F;syscall系统调用的时候断住</p>
+</li>
+<li><p>tcatch syscall &#x2F;&#x2F;syscall系统调用的时候断住，只断一次</p>
+</li>
+<li><p>info break &#x2F;&#x2F;catch的断点可以通过i b查看</p>
+</li>
+<li><p>除syscall外还可以使用的有：</p>
+<p>​      throw: 抛出异常</p>
+<p>​      catch: 捕获异常</p>
+<p>​      exec: exec被调用</p>
+<p>​      fork: fork被调用</p>
+<p>​      vfork: vfork被调用</p>
+<p>​      load: 加载动态库</p>
+<p>​      load libname: 加载名为libname的动态库</p>
+<p>​      unload: 卸载动态库</p>
+<p>​      unload libname: 卸载名为libname的动态库</p>
+<p>​      syscall [args]: 调用系统调用，args可以指定系统调用号，或者系统名称</p>
+</li>
+</ul>
+<h2 id="打印指令："><a href="#打印指令：" class="headerlink" title="打印指令："></a><strong>打印指令</strong>：</h2><p><strong>查看内存指令x：</strong></p>
+<ul>
+<li><p>x &#x2F;nuf 0x123456 &#x2F;&#x2F;常用，x指令的格式是：x空格&#x2F;nfu，<strong>nfu代表三个参数</strong></p>
+</li>
+<li><p>n代表显示几个单元（而不是显示几个字节，后面的u表示一个单元多少个字节），放在’&#x2F;‘后面</p>
+</li>
+<li><p>u代表一个单元几个字节，b(一个字节)，h(俩字节)，w(四字节)，g(八字节)</p>
+</li>
+<li><p>f代表显示数据的格式，<strong>f和u的顺序可以互换</strong>，也可以只有一个或者不带n，用的时候很灵活</p>
+<p><img src="C:\Users\刘先生\AppData\Roaming\Typora\typora-user-images\image-20230413204103398.png" srcset="/img/loading.gif" lazyload alt="image-20230413204103398"></p>
+</li>
+<li><p>x &#x2F;10gx 0x123456 &#x2F;&#x2F;常用，从0x123456开始每个单元八个字节，十六进制显示是个单元的数据</p>
+</li>
+<li><p>x &#x2F;10xd $rdi &#x2F;&#x2F;<strong>从rdi指向的地址</strong>向后打印10个单元，每个单元4字节的十进制数</p>
+</li>
+<li><p>x &#x2F;10i 0x123456 &#x2F;&#x2F;常用，从0x123456处向后显示十条汇编指令</p>
+</li>
+</ul>
+<h5 id="打印指令p-print-："><a href="#打印指令p-print-：" class="headerlink" title="打印指令p(print)："></a>打印指令p(print)：</h5><ul>
+<li>p fun_name &#x2F;&#x2F;打印fun_name的地址，需要保留符号</li>
+<li>p 0x10-0x08 &#x2F;&#x2F;计算0x10-0x08的结果</li>
+<li>p &amp;a &#x2F;&#x2F;查看变量或者函数a的地址</li>
+<li>p *(0x123456) &#x2F;&#x2F;查看0x123456地址的值，注意和x指令的区别，x指令查看地址的值不用星号</li>
+<li>p $rdi &#x2F;&#x2F;显示rdi寄存器的值，<strong>注意和x的区别，这只是显示rdi的值，而不是rdi指向的值</strong><br>*<em>p <em>($rdi) &#x2F;&#x2F;显示rdi指向的值</em></em></li>
+</ul>
+<h5 id="打印汇编指令disass-disassemble-："><a href="#打印汇编指令disass-disassemble-：" class="headerlink" title="打印汇编指令disass(disassemble)："></a>打印汇编指令disass(disassemble)：</h5><ul>
+<li>disass 0x123456 &#x2F;&#x2F;显示0x123456前后的汇编指令</li>
+<li>x &#x2F;10i &#x2F;&#x2F;<strong>可以用x显示指令</strong></li>
+</ul>
+<h5 id="打印源代码指令list："><a href="#打印源代码指令list：" class="headerlink" title="打印源代码指令list："></a>打印源代码指令list：</h5><ul>
+<li>list &#x2F;&#x2F;查看当前附近10行代码，要有源码，list指令pwn题中几乎不用，但为了完整性还是简单举几个例子<ul>
+<li>list 38 &#x2F;&#x2F;查看38行附近10行代码</li>
+<li>list 1,10 &#x2F;&#x2F;查看1-10行</li>
+<li>list main &#x2F;&#x2F;查看main函数开始10行</li>
+</ul>
+</li>
+</ul>
+<h2 id="修改和查找指令"><a href="#修改和查找指令" class="headerlink" title="修改和查找指令"></a>修改和查找指令</h2><h5 id="修改数据指令set："><a href="#修改数据指令set：" class="headerlink" title="修改数据指令set："></a>修改数据指令set：</h5><ul>
+<li>set $rdi&#x3D;0x10 &#x2F;&#x2F;把rdi寄存器的值变为0x10</li>
+<li>set *(0x123456)&#x3D;0x10 &#x2F;&#x2F;0x123456地址的值变为0x10，注意带星号</li>
+<li>set args “abc” “def” “gh“&#x2F;&#x2F;给参数123赋值</li>
+<li>set args “python -c ‘print “1234\x7f\xde”’” &#x2F;&#x2F;使用python给参数赋值不可见字符</li>
+</ul>
+<h5 id="查找数据："><a href="#查找数据：" class="headerlink" title="查找数据："></a>查找数据：</h5><ul>
+<li>search rdi &#x2F;&#x2F;从当前位置向后查包含rdi的指令，返回若干</li>
+<li>search -h &#x2F;&#x2F;查看search帮助，我也不太长用这个指令</li>
+<li>find “hello” &#x2F;&#x2F;查找hello字符串，pwndbg独有</li>
+<li>ropgadget &#x2F;&#x2F;查找ropgadget，pwndbg独有，没啥用，可以用其他工具</li>
+</ul>
+<h2 id="堆操作指令"><a href="#堆操作指令" class="headerlink" title="堆操作指令"></a>堆操作指令</h2><ul>
+<li>arena &#x2F;&#x2F;显示arena的详细信息</li>
+<li>arenas &#x2F;&#x2F;显示所有arena的基本信息</li>
+<li>arenainfo &#x2F;&#x2F;好看的显示所有arena的信息</li>
+<li>bins &#x2F;&#x2F;常用，查看所有种类的堆块的链表情况</li>
+<li>fastbins &#x2F;&#x2F;单独查看fastbins的链表情况</li>
+<li>largebins &#x2F;&#x2F;同上，单独查看largebins的链表情况</li>
+<li>smallbins &#x2F;&#x2F;同上，单独查看smallbins的链表情况</li>
+<li>unsortedbin &#x2F;&#x2F;同上，单独查看unsortedbin链表情况</li>
+<li>tcachebins &#x2F;&#x2F;同上，单独查看tcachebins的链表情况</li>
+<li>tcache &#x2F;&#x2F;查看tcache详细信息</li>
+<li>heap &#x2F;&#x2F;数据结构的形式显示所有堆块，会显示一大堆</li>
+<li>heapbase &#x2F;&#x2F;查看堆起始地址</li>
+<li>heapinfo、heapinfoall &#x2F;&#x2F;显示堆得信息，和bins的挺像的，没bins好用</li>
+<li>parseheap &#x2F;&#x2F;显示堆结构，很好用</li>
+<li>tracemalloc &#x2F;&#x2F;好用，会跟提示所有操作堆的地方</li>
+</ul>
+<h2 id="其他独有指令"><a href="#其他独有指令" class="headerlink" title="其他独有指令"></a>其他独有指令</h2><ul>
+<li><p>cyclc 50 &#x2F;&#x2F;生成50个用来溢出的字符</p>
+<p>​       cyclc -l 字符，找到特定字符在生成的字符串的位置</p>
+</li>
+<li><p>$reabse &#x2F;&#x2F;开启PIE的情况的地址偏移</p>
+</li>
+<li><p>b *$reabse(0x123456) &#x2F;&#x2F;断住PIE状态下的二进制文件中0x123456的地方</p>
+<p>​      codebase &#x2F;&#x2F;打印PIE偏移，与rebase不同，这是打印，rebase是使用</p>
+</li>
+<li><p>stack &#x2F;&#x2F;查看栈</p>
+</li>
+<li><p>retaddr &#x2F;&#x2F;打印包含返回地址的栈地址</p>
+</li>
+<li><p>canary &#x2F;&#x2F;直接看canary的值</p>
+</li>
+<li><p>plt &#x2F;&#x2F;查看plt表</p>
+</li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>pwngdb的使用</div>
+      <div>http://ak0er.github.io/2024/05/04/pwngdb的使用/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Ak0er</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月4日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/05/04/Pwntools-fmtstr-payload/" title="Pwntools-fmtstr_payload">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Pwntools-fmtstr_payload</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/01/%E6%9D%82%E4%B8%83%E6%9D%82%E5%85%AB%E7%9A%84pwn/" title="杂七杂八的pwn">
+                        <span class="hidden-mobile">杂七杂八的pwn</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

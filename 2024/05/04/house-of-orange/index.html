@@ -1,0 +1,675 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Ak0er">
+  <meta name="keywords" content="zh-CN">
+  
+    <meta name="description" content="house of orange首先house of orange是一套组合全（利用了unsorted bin attack 以及 FSOP） 什么是house of orange？ house of orange该攻击手法是在我们没有free函数的情况下，来获得一个在unsorted bin中的堆块。house of orange到这里就结束了，但之后还会利用其他的手法来拿到shell。 原理：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="house_of_orange">
+<meta property="og:url" content="http://ak0er.github.io/2024/05/04/house-of-orange/index.html">
+<meta property="og:site_name" content="Ak0er">
+<meta property="og:description" content="house of orange首先house of orange是一套组合全（利用了unsorted bin attack 以及 FSOP） 什么是house of orange？ house of orange该攻击手法是在我们没有free函数的情况下，来获得一个在unsorted bin中的堆块。house of orange到这里就结束了，但之后还会利用其他的手法来拿到shell。 原理：">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408193408781.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408194015739.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408201423828.png">
+<meta property="article:published_time" content="2024-05-04T10:49:59.000Z">
+<meta property="article:modified_time" content="2024-05-10T12:54:33.640Z">
+<meta property="article:author" content="Ak0er">
+<meta property="article:tag" content="zh-CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408193408781.png">
+  
+  
+  
+  <title>house_of_orange - Ak0er</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ak0er.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Fluid</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="house_of_orange"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-04 18:49" pubdate>
+          2024年5月4日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          13 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">house_of_orange</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="house-of-orange"><a href="#house-of-orange" class="headerlink" title="house of orange"></a>house of orange</h1><p>首先house of orange是一套组合全（利用了unsorted bin attack 以及 FSOP）</p>
+<h3 id="什么是house-of-orange？"><a href="#什么是house-of-orange？" class="headerlink" title="什么是house of orange？"></a>什么是house of orange？</h3><blockquote>
+<p>house of orange该攻击手法是在我们没有free函数的情况下，来获得一个在unsorted bin中的堆块。house of orange到这里就结束了，但之后还会利用其他的手法来拿到shell。</p>
+<p><em>原理：</em></p>
+<p><em>如果我们申请的堆块大小大于了top chunk size的话，那么就会将原来的top chunk放入unsorted</em> <em>bin__中，然后再映射或者扩展一个新的top chunk出来。</em></p>
+<p><em>利用过程：</em></p>
+<p><em>1、先利用溢出等方式进行篡改top chunk的size</em></p>
+<p><em>2、然后申请一个大于top chunk的size</em></p>
+</blockquote>
+<p>关于对old_topd的检查函数如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs c">old_top = av-&gt;top;<span class="hljs-comment">//原本old top chunk的地址</span><br>old_size = chunksize (old_top);<span class="hljs-comment">//原本old top chunk的size</span><br>old_end = (<span class="hljs-type">char</span> *) (chunk_at_offset (old_top, old_size));<span class="hljs-comment">//old top chunk的地址加上其size</span><br><br>brk = snd_brk = (<span class="hljs-type">char</span> *) (MORECORE_FAILURE);<br><br><span class="hljs-comment">/*</span><br><span class="hljs-comment">   If not the first time through, we require old_size to be</span><br><span class="hljs-comment">   at least MINSIZE and to have prev_inuse set.</span><br><span class="hljs-comment"> */</span><br><br>assert ((old_top == initial_top (av) &amp;&amp; old_size == <span class="hljs-number">0</span>) ||<br>        ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (old_size) &gt;= MINSIZE &amp;&amp;<br>         prev_inuse (old_top) &amp;&amp;<br>         ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) old_end &amp; (pagesize - <span class="hljs-number">1</span>)) == <span class="hljs-number">0</span>));<br><br>assert ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (old_size) &lt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (nb + MINSIZE));<br></code></pre></td></tr></table></figure>
+
+<p>第一次调用该函数top chunk还未被初始化，所以old_size为0，并且我们需要利用的时候这个条件也不可能满足，所以可以忽略。</p>
+<p>第一个条件无法成立的话，那么就需要从第二个条件入手，也就是要保证我们的old_size必须不小于MINSIZE，以及需要保证old_size的prev_size位必须为1，并且原本old top chunk的地址加上其size之后的地址要与页对齐，也就是address&amp;0xfff&#x3D;0x000。最后old chunk的size必须要小于我们申请的堆块大小加上MINSIZE。</p>
+<p>如果我们申请的堆块大于了0x20000，那么将会是mmap映射出来的内存，并非是扩展top chunk了。</p>
+<p>总结下，我们需要绕过检查所需要构造的值：</p>
+<p>old_top_size(我们通过溢出修改) nb（我们申请的堆块大小）</p>
+<blockquote>
+<p><em>MINSIZE&lt;old_top_size&lt;<strong>nb</strong>+MINSIZE</em></p>
+<p><em>old_top_size的prev_size位是1</em></p>
+<p><em>(old_top_size+old_top</em><em>-1</em><em>)&amp;0xfff&#x3D;0x000&#x2F;&#x2F;红色块为猜测</em></p>
+<p><em>nb</em><em>&lt;0x20000</em></p>
+</blockquote>
+<p>首先第一步就是要通过溢出的手法来把top_chunk的size位改成符合以上条件的大小，然后再申请一个大于top chunk的size一个chunk(也就是我们的nb)，这样top chunk就进入到了<strong>unsorted bin</strong>(具体查看另一篇文章)</p>
+<h2 id="FSOP"><a href="#FSOP" class="headerlink" title="FSOP"></a>FSOP</h2><p>  首先通过house of orange把top chunk申请到了unsorted bin中，如果我们能够覆盖这个位于unsorted bin中堆块的bk指针，然后通过unsorted bin attack就可以向一个指定的地址写入一个很大的值（main_arena+88(96)）。而我们需要的就是通过unsorted bin attack向<code>_IO_list_all</code>写入这个地址main_arena+88(96),然后去打一个FSOP。</p>
+<ul>
+<li>FSOP就是要篡改<code>_IO_list_all</code>和 <code>_chain</code>,以达到劫持 <code>IO_FILE</code>的目的（也就是把这个结构体放到了可以控制的内存上）。</li>
+<li>然后我们通过其中的 <code>_IO_flush_all_lockp</code> 来刷新 <code>_IO_list_all</code> 链表上的所有文件（就是对所有的文件流执行了一个fflush）</li>
+<li>又因为fflush会调用vtable中的<code>_IO_overflow</code>并且<code>IO_FILE</code>又被我们所劫持,所以我们可以修改vtable中的 <code>_IO_overflow</code>函数地址(如：将其修改为system的地址)</li>
+<li>触发该机制时，执行的函数会以 <code>_IO_FILE</code>结构体的地址作为函数的第一个参数，因此我们让<code>IO_FILE</code>结构的flags成员为&#x2F;bin&#x2F;sh字符串，那么当<strong>执行exit函数</strong>或者<strong>libc执行abort流程</strong>时或者程序从<strong>main函数返回时</strong>触发了<code>_IO_flush_all_lockp</code>就会拿到shell。</li>
+</ul>
+<p>正常的链表结构为：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408193408781.png" srcset="/img/loading.gif" lazyload alt="image-20240408193408781"></p>
+<p>通过FSOP的布局：</p>
+<ol>
+<li>首先篡改<code>_IO_list_all</code>为main_arena+88这个地址（因为这一片的内存不可控），而chain字段是首地址加上0x68的偏移得到的，所以<strong>下一个</strong><code>_IO_FILE</code>结构体的地址为<code>main_arena+88(96)+0x68</code>。</li>
+<li>巧合的是这个地址（main_arena+88+0x68）的恰好是smallbin中size为0x60的chunk链，如果能将一个chunk放到这个small bin中size为0x60的链上，那么篡改<code>_IO_list_all</code>为main_arena+88         这个地址后，small bin中的chunk就是IO_FILE结构体了。</li>
+<li>把这个chunk申请出来，我们就成功的控制了一块<code>_IO_FILE</code>结构体了，接下来就可以伪造vtable字段最终拿到shell</li>
+</ol>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408194015739.png" srcset="/img/loading.gif" lazyload alt="image-20240408194015739"></p>
+<p>接下来就是具体的布局需要绕过的if检查以达到成功执行<code>_IO_OVERFLOW</code>函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c">     <span class="hljs-keyword">if</span> (<br>         (<br>             (fp-&gt;_mode &lt;= <span class="hljs-number">0</span> &amp;&amp; fp-&gt;_IO_write_ptr &gt; fp-&gt;_IO_write_base)<br>          || (_IO_vtable_offset (fp) == <span class="hljs-number">0</span> &amp;&amp; fp-&gt;_mode &gt; <span class="hljs-number">0</span> &amp;&amp; (fp-&gt;_wide_data &gt; _IO_write_ptr &gt; fp-&gt;_wide_data-&gt;_IO_write_base))<br>         )<br>         &amp;&amp; _IO_OVERFLOW (fp, EOF) == EOF<br>     )<br>result = EOF;<br></code></pre></td></tr></table></figure>
+
+<p>通过上面的代码可以知道我们如果需要<code>_IO_OVERFLOW(fp,EOF)</code>成功执行就需要使连接其的&amp;&amp;的前半部分的结果为1，也就是使<code>(fp-&gt;_mode &lt;= 0 &amp;&amp; fp-&gt;_IO_write_ptr &gt; fp-&gt;_IO_write_base)</code>**(称为一号条件)<strong>或者<code>(_IO_vtable_offset (fp) == 0 &amp;&amp; fp-&gt;_mode &gt; 0 &amp;&amp; (fp-&gt;_wide_data &gt; _IO_write_ptr &gt; fp-&gt;_wide_data-&gt;_IO_write_base))</code></strong>(称为二号条件)**的其中一个条件成立，前一个条件看起来更加的短，我们只需要mode&#x3D;0,<code>_IO_write_ptr</code>&#x3D;1,<code>_IO_wirte_base</code>&#x3D;0（改成满足条件的三个值就可以）,这样就可以触发<code>_IO_OVERFLOW</code>函数。</p>
+<p><strong>注</strong>：为什么house of orange之后打FSOP的成功概率是1&#x2F;2？</p>
+<p>由于触发了<code>_IO_flush_all_lockp</code>函数，会根据_IO_list_all和chain字段来去依次遍历链表上的每个_<code>IO_FILE</code>结构体，在我们整体布局完成后，第一个结构体就是从main_arena+88开始。而第一个结构体的mode字段是main_arena+88+0xc0处的数据决定的(如下图)。<strong>mode字段是四字节</strong></p>
+<p><img src="https://cdn.jsdelivr.net/gh/Ak0er/picgo/image-20240408201423828.png" srcset="/img/loading.gif" lazyload alt="image-20240408201423828"></p>
+<p>因为这个是一个libc的地址，而libc的地址是随机的，所以这个值有可能是真的也有可能是负的，这四个字节可能是0到0xffffffff之间的任何一个值,而这个值只要大于0x7fffffff就为负，反之则为正。所以刚好_mode字段的正负可能性都为1&#x2F;2</p>
+<p>至于为什么mode字段要求为正，是因为在上面提到的检查机制，我们的布局是以一号条件为目的的而其中就要求mode&lt;&#x3D;0</p>
+<p><strong>house of orange中的函数调用流程为</strong>：<code>__libc_malloc-&gt;malloc_printerr-&gt;libc_message-&gt;abort-&gt;_IO_flush_all_lockp</code></p>
+<h3 id="IO-FILE结构体："><a href="#IO-FILE结构体：" class="headerlink" title="IO_FILE结构体："></a>IO_FILE结构体：</h3><figure class="highlight sqf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs sqf"><span class="hljs-number">0</span>x0   <span class="hljs-variable">_flags</span><br><span class="hljs-number">0</span>x8   <span class="hljs-variable">_IO_read_ptr</span><br><span class="hljs-number">0</span>x10  <span class="hljs-variable">_IO_read_end</span><br><span class="hljs-number">0</span>x18  <span class="hljs-variable">_IO_read_base</span><br><span class="hljs-number">0</span>x20  <span class="hljs-variable">_IO_write_base</span><br><span class="hljs-number">0</span>x28  <span class="hljs-variable">_IO_write_ptr</span><br><span class="hljs-number">0</span>x30  <span class="hljs-variable">_IO_write_end</span><br><span class="hljs-number">0</span>x38  <span class="hljs-variable">_IO_buf_base</span><br><span class="hljs-number">0</span>x40  <span class="hljs-variable">_IO_buf_end</span><br><span class="hljs-number">0</span>x48  <span class="hljs-variable">_IO_save_base</span><br><span class="hljs-number">0</span>x50  <span class="hljs-variable">_IO_backup_base</span><br><span class="hljs-number">0</span>x58  <span class="hljs-variable">_IO_save_end</span><br><span class="hljs-number">0</span>x60  <span class="hljs-variable">_markers</span><br><span class="hljs-number">0</span>x68  <span class="hljs-variable">_chain</span><br><span class="hljs-number">0</span>x70  <span class="hljs-variable">_fileno</span><br><span class="hljs-number">0</span>x74  <span class="hljs-variable">_flags2</span><br><span class="hljs-number">0</span>x78  <span class="hljs-variable">_old_offset</span><br><span class="hljs-number">0</span>x80  <span class="hljs-variable">_cur_column</span><br><span class="hljs-number">0</span>x82  <span class="hljs-variable">_vtable_offset</span><br><span class="hljs-number">0</span>x83  <span class="hljs-variable">_shortbuf</span><br><span class="hljs-number">0</span>x88  <span class="hljs-variable">_lock</span><br><span class="hljs-number">0</span>x90  <span class="hljs-variable">_offset</span><br><span class="hljs-number">0</span>x98  <span class="hljs-variable">_codecvt</span><br><span class="hljs-number">0</span>xa0  <span class="hljs-variable">_wide_data</span><br><span class="hljs-number">0</span>xa8  <span class="hljs-variable">_freeres_list</span><br><span class="hljs-number">0</span>xb0  <span class="hljs-variable">_freeres_buf</span><br><span class="hljs-number">0</span>xb8  <span class="hljs-variable">__pad5</span><br><span class="hljs-number">0</span>xc0  <span class="hljs-variable">_mode</span><br><span class="hljs-number">0</span>xc4  <span class="hljs-variable">_unused2</span><br><span class="hljs-number">0</span>xd8  vtable<br></code></pre></td></tr></table></figure>
+
+<h4 id="vtable中的函数指针："><a href="#vtable中的函数指针：" class="headerlink" title="vtable中的函数指针："></a>vtable中的函数指针：</h4><figure class="highlight sqf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs sqf">const struct <span class="hljs-variable">_IO_jump_t</span> <span class="hljs-variable">_IO_wstrn_jumps</span> attribute_hidden =<br>&#123;<br>  JUMP_INIT_DUMMY,<br>  JUMP_INIT(finish, <span class="hljs-variable">_IO_wstr_finish</span>),<br>  JUMP_INIT(overflow, (<span class="hljs-variable">_IO_overflow_t</span>) <span class="hljs-variable">_IO_wstrn_overflow</span>),<br>  JUMP_INIT(underflow, (<span class="hljs-variable">_IO_underflow_t</span>) <span class="hljs-variable">_IO_wstr_underflow</span>),<br>  JUMP_INIT(uflow, (<span class="hljs-variable">_IO_underflow_t</span>) <span class="hljs-variable">_IO_wdefault_uflow</span>),<br>  JUMP_INIT(pbackfail, (<span class="hljs-variable">_IO_pbackfail_t</span>) <span class="hljs-variable">_IO_wstr_pbackfail</span>),<br>  JUMP_INIT(xsputn, <span class="hljs-variable">_IO_wdefault_xsputn</span>),<br>  JUMP_INIT(xsgetn, <span class="hljs-variable">_IO_wdefault_xsgetn</span>),<br>  JUMP_INIT(seekoff, <span class="hljs-variable">_IO_wstr_seekoff</span>),<br>  JUMP_INIT(seekpos, <span class="hljs-variable">_IO_default_seekpos</span>),<br>  JUMP_INIT(setbuf, <span class="hljs-variable">_IO_default_setbuf</span>),<br>  JUMP_INIT(sync, <span class="hljs-variable">_IO_default_sync</span>),<br>  JUMP_INIT(doallocate, <span class="hljs-variable">_IO_wdefault_doallocate</span>),<br>  JUMP_INIT(read, <span class="hljs-variable">_IO_default_read</span>),<br>  JUMP_INIT(write, <span class="hljs-variable">_IO_default_write</span>),<br>  JUMP_INIT(seek, <span class="hljs-variable">_IO_default_seek</span>),<br>  JUMP_INIT(close, <span class="hljs-variable">_IO_default_close</span>),<br>  JUMP_INIT(stat, <span class="hljs-variable">_IO_default_stat</span>),<br>  JUMP_INIT(showmanyc, <span class="hljs-variable">_IO_default_showmanyc</span>),<br>  JUMP_INIT(imbue, <span class="hljs-variable">_IO_default_imbue</span>)<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>house_of_orange</div>
+      <div>http://ak0er.github.io/2024/05/04/house-of-orange/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Ak0er</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月4日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/05/05/large-bin-attack/" title="large_bin_attack">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">large_bin_attack</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/04/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E7%9A%84%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8/" title="格式化字符的漏洞利用">
+                        <span class="hidden-mobile">格式化字符的漏洞利用</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
